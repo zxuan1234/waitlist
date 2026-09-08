@@ -2,7 +2,7 @@
 -- Run this in the Supabase SQL editor (or via the CLI) on a new project.
 -- Reviewers: this file is the source of truth for question 3.
 
-create extension if not exists pgcrypto;
+-- gen_random_uuid() is available on hosted Supabase; no extra extension needed.
 
 create table if not exists public.waitlist (
   id uuid primary key default gen_random_uuid(),
