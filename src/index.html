@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nook — a reading journal waitlist</title>
+    <meta
+      name="description"
+      content="Nook is a quiet reading journal for the one book in your hands. Join the waitlist."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="mast">
+      <p class="wordmark">Nook</p>
+    </header>
+
+    <main>
+      <p class="kicker">A waitlist, not a product yet</p>
+      <h1>Finish the book on the nightstand.</h1>
+      <p class="lede">
+        Nook is a small reading journal that tracks one book at a time. No
+        shelf to curate, no feed, no streak. Leave an email and we will write
+        when it exists.
+      </p>
+
+      <form id="waitlist-form" novalidate>
+        <div class="honeypot" aria-hidden="true">
+          <label for="company">Company</label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            maxlength="254"
+            required
+            spellcheck="false"
+          />
+        </div>
+
+        <button type="submit" id="submit-btn">Join the waitlist</button>
+      </form>
+
+      <p id="status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
+
+      <p class="fineprint">
+        We store your email and when you joined. That is all. No confirmation
+        mail in this version, so a typo stays a typo.
+      </p>
+    </main>
+
+    <footer>
+      <p>Nook is a take-home waitlist. Not affiliated with anyone.</p>
+    </footer>
+
+    <script>
+      window.NOOK_CONFIG = {
+        supabaseUrl: "__SUPABASE_URL__",
+        supabaseAnonKey: "__SUPABASE_ANON_KEY__",
+      };
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>
