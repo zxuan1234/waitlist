@@ -4,7 +4,7 @@
 
 The brief asked for a waitlist page, Netlify, Supabase, and this write-up. Everything else was unspecified. I filled the gaps as follows and then stopped.
 
-**What the waitlist is for.** The brief never names a product. I invented Nook: a reading journal that tracks one book at a time. That is copy, not scope. A real waitlist would need a reason people are signing up; I would rather name that gap than ship a generic "coming soon" page.
+**What the waitlist is for.** The brief never names a product. This page is Teahappy: a beverage shop launching an app, giving a free milk tea voucher to people who sign up. That is copy, not extra backend. We do not issue, email, or track the voucher in this version — we only store the email. A real launch would need a way to actually send the voucher and to stop one person claiming many with throwaway addresses.
 
 **How emails reach the database.** Direct from the browser with the anon key (Option A). With a few hours, I wanted one security model to get right — RLS — rather than a function plus a master key that bypasses RLS. The cost is that all safety sits in `schema.sql`.
 
@@ -18,7 +18,8 @@ The brief asked for a waitlist page, Netlify, Supabase, and this write-up. Every
 
 **Deliberately out of scope**
 
-- Confirmation email (double opt-in). People can sign someone else up. A real waitlist needs this.
+- Confirmation email (double opt-in). People can sign someone else up. A real waitlist — especially a voucher — needs this.
+- Actually sending or redeeming the milk tea voucher. This page only stores the email.
 - Unsubscribe or delete. I am collecting an email with no way for the owner to remove it.
 - Analytics and a custom domain.
 - A Netlify Function. Locked to Option A.
@@ -31,7 +32,7 @@ That is under three inserts per second. I looked at the public pricing pages on 
 
 **Supabase.** The Free plan lists **unlimited API requests**, 500 MB database, 5 GB egress + 5 GB cached egress, and pauses after a week of inactivity ([pricing](https://supabase.com/pricing)). 10,000 rows of email + timestamp is well under a megabyte. Three inserts per second is nothing for Postgres. Egress on this design is tiny (JSON bodies, no storage downloads). I am estimating the Postgres throughput; I looked up the quota numbers.
 
-**What actually breaks first.** Not latency. With no rate limit, 10,000 signups in an hour is probably not 10,000 people. The honeypot catches dumb bots that fill every field. It does not catch a script that only posts `email`. The unique constraint stops the same address repeating, not 10,000 distinct fake addresses. The list becomes untrustworthy, which is worse than a slow page.
+**What actually breaks first.** Not latency. A free voucher is a magnet for bots and for people hitting submit over and over. With no rate limit, 10,000 signups in an hour is probably not 10,000 people. The honeypot catches dumb bots that fill every field. It does not catch a script that only posts `email`. The unique constraint stops the same address repeating, not 10,000 distinct fake addresses. You then have a list you cannot trust, and a pile of voucher claims you cannot honour. That is worse than a slow page.
 
 **What I would add, in order:** rate limiting (needs a server, so Option B or a provider WAF), then a real bot check (Turnstile), then an alert when insert rate spikes. I would not start with a cache or a queue at this volume.
 
@@ -61,7 +62,7 @@ If you see a JSON array of emails, RLS is off or a SELECT policy exists. Do not 
 
 I used Cursor Grok 4.6 as a cloud agent to implement the spec in this repo.
 
-- **What I asked it for:** the page, `schema.sql`, Netlify build injection, this write-up, and the RLS verify script, following `waitlist-takehome-spec.md`.
+- **What I asked it for:** the page, `schema.sql`, Netlify build injection, this write-up, and the RLS verify script, following `waitlist-takehome-spec.md`. Later: rebrand from a placeholder product to Teahappy (beverage shop, free milk tea voucher for the new app).
 - **What I changed or refused in the output:** no `service_role` key, no SELECT policy "to make the table easier to debug", no IP/user-agent columns, no React, no confirmation email. The first draft of an RLS policy often grants `SELECT` to `anon`; this schema does not. Grants are `INSERT` only.
 - **What I threw away:** a Netlify Function path (Option B). The locked spec is Option A, and a function would mean explaining a key that ignores RLS.
 - **What I do not fully understand:** nothing I shipped. PostgREST `resolution=ignore-duplicates` is the documented mapping to `ON CONFLICT DO NOTHING`; if that header were omitted, a duplicate would be HTTP 409 and the page still shows the same success sentence.

@@ -2,7 +2,8 @@
   "use strict";
 
   var EMAIL_RE = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/;
-  var SUCCESS_MESSAGE = "You're on the list.";
+  var SUCCESS_MESSAGE =
+    "You're on the list. Your milk tea voucher is waiting for launch day.";
   var INPUT_ERROR = "Enter an email that looks like name@example.com.";
   var SERVER_ERROR = "Something on our end went wrong. Try again in a minute.";
   var CONFIG_ERROR =
@@ -13,7 +14,7 @@
   var honeypot = document.getElementById("company");
   var button = document.getElementById("submit-btn");
   var statusEl = document.getElementById("status");
-  var config = window.NOOK_CONFIG || {};
+  var config = window.TEAHAPPY_CONFIG || {};
 
   function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
@@ -91,7 +92,7 @@
     }
 
     button.disabled = true;
-    button.textContent = "Joining…";
+    button.textContent = "Saving…";
 
     submitEmail(email)
       .then(function (response) {
@@ -114,7 +115,7 @@
       })
       .then(function () {
         button.disabled = false;
-        button.textContent = "Join the waitlist";
+        button.textContent = "Save my voucher spot";
       });
   });
 })();

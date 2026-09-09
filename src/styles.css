@@ -1,14 +1,14 @@
 :root {
-  --paper: #f3eee3;
-  --ink: #1c1710;
-  --muted: #5e5548;
-  --rule: #d2c8b4;
-  --accent: #8f2f14;
-  --accent-hover: #6f230e;
-  --on-accent: #f7f1e6;
+  --paper: #f7ead6;
+  --ink: #3a2418;
+  --muted: #7a5644;
+  --rule: #e0c9a8;
+  --accent: #c45c2a;
+  --accent-hover: #a3471d;
+  --on-accent: #fff6ea;
   --error: #8a1f1f;
-  --ok: #21543a;
-  --focus: #1c1710;
+  --ok: #3d6b4a;
+  --focus: #3a2418;
 }
 
 *,
@@ -28,8 +28,8 @@ body {
   background: var(--paper);
   background-image: radial-gradient(
       ellipse at top,
-      rgba(143, 47, 20, 0.05),
-      transparent 42%
+      rgba(196, 92, 42, 0.12),
+      transparent 46%
     );
   font-family: "Palatino Linotype", Palatino, "Iowan Old Style", "Times New Roman",
     serif;
@@ -99,7 +99,7 @@ form {
   padding: 0.7rem 0.8rem;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  background: #faf7f0;
+  background: #fff8ee;
   color: var(--ink);
   font: inherit;
   font-size: 1rem;

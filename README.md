@@ -1,6 +1,6 @@
-# Nook waitlist
+# Teahappy waitlist
 
-A one-page waitlist for **Nook**, a reading journal that only tracks the book in your hands. The original brief never named a product; that name is invented so the page has something specific to say.
+A one-page waitlist for **Teahappy**, a beverage shop launching an app. People on the list get a free milk tea voucher. The original brief never named a product; this story is so the page has a reason people are signing up.
 
 Live site: *not deployed from this environment — connect the repo to Netlify and add the two env vars below.*
 
