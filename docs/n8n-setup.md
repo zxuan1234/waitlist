@@ -1,6 +1,8 @@
 # n8n setup (click by click)
 
-**SMTP:** use **Resend** (free: 100 emails/day, 3,000/month). It is made for this. Gmail SMTP is free too but Google often blocks “app” sends; use it only if Resend is blocked for you.
+**No domain:** use **Gmail SMTP** (free). From and the daily digest both go through your Gmail address. That is enough for this take-home.
+
+**If you buy a domain later:** switch SMTP to **Resend** (100 emails/day free, better inbox placement). Resend will not send until a domain is verified — skip it for now.
 
 The landing page still does **not** call n8n. Flow:
 
@@ -27,21 +29,26 @@ Google Sheets is not used. The secret key lives only in n8n.
 
 ---
 
-## 1. Resend (free SMTP)
+## 1. Gmail SMTP (no domain)
 
-1. Sign up at [resend.com](https://resend.com) (no card for Free).
-2. **Domains** → add a domain you own → add the DNS records they show → wait until verified.  
-   For a first test, Resend may allow a test sender after you verify; production From must be on that domain.
-3. **API Keys** → create → copy `re_...` once.
-4. SMTP settings you will paste into n8n:
+1. Open the Google account that should **send** mail (same one can **receive** the daily CSV).
+2. Turn on **2-Step Verification**: [Google Account → Security](https://myaccount.google.com/security).
+3. Open [App passwords](https://myaccount.google.com/apppasswords) → app: Mail → device: Other → name `n8n` → **Create**.
+4. Copy the 16-character password (spaces do not matter). This is **not** your normal Gmail password.
+5. SMTP settings for n8n:
 
 | Field | Value |
 | --- | --- |
-| Host | `smtp.resend.com` |
-| Port | `465` (SSL) or `587` (STARTTLS) |
-| User | `resend` (the word resend, not your email) |
-| Password | the `re_...` API key |
-| From | e.g. `Teahappy <hello@your-verified-domain>` |
+| Host | `smtp.gmail.com` |
+| Port | `587` |
+| SSL/TLS | STARTTLS (or “TLS”, not SSL on 465, unless n8n offers 465 SSL) |
+| User | your full address, e.g. `you@gmail.com` |
+| Password | the 16-character **App password** |
+| From | the **same** `you@gmail.com` (Gmail rejects a fake From) |
+
+`__FROM_EMAIL__` and `__STAFF_EMAIL__` can both be `you@gmail.com`. Confirm mails to waitlist people will show as coming from your Gmail, not “Teahappy.com”. That is expected without a domain.
+
+If Google later blocks sign-in, create a new App password. Do not use your mailbox password in n8n.
 
 ---
 
@@ -49,7 +56,7 @@ Google Sheets is not used. The secret key lives only in n8n.
 
 1. Create an account at [n8n.io](https://n8n.io) (Cloud) or run n8n yourself (also free).
 2. **Workflows** → **Import from File** → choose `n8n/teahappy-waitlist-emails.json`.
-3. **Credentials** → add **SMTP** → name it `SMTP (Resend)` → paste the table above. Open **Send confirm email** and **Send daily digest** and select that credential if import did not attach it.
+3. **Credentials** → add **SMTP** → paste the Gmail table. Open **Send confirm email** and **Send daily digest** and select that credential.
 
 ---
 
@@ -59,8 +66,8 @@ Click each node and replace:
 
 | Find | Put |
 | --- | --- |
-| `__FROM_EMAIL__` | `hello@your-verified-domain` (same domain as Resend) |
-| `__STAFF_EMAIL__` | **your** inbox (daily CSV) |
+| `__FROM_EMAIL__` | your Gmail, e.g. `you@gmail.com` (must match the SMTP user) |
+| `__STAFF_EMAIL__` | the same Gmail (daily CSV) |
 | `__SUPABASE_URL__` | `https://YOUR-REF.supabase.co` (Connect button, no trailing slash) |
 | `__SUPABASE_SECRET_KEY__` | **Legacy `service_role` JWT** (`eyJ...`) from API Keys → **Legacy** tab. Not `sb_publishable_`. Not in Netlify. |
 | `__CONFIRM_LINK_BASE__` | Confirm webhook **Production** URL **without** `?token=` (step 4) |
@@ -100,7 +107,7 @@ Payload is the new row, including `confirm_token`. n8n does not need to `SELECT`
 3. In **Table Editor**, that row’s `confirmed_at` is set.
 4. **Send daily digest**: in n8n, open **Every day 09:00 UTC** → Execute workflow (or wait until 09:00 UTC). You should get mail: “N new emails” + CSV.
 
-If signup mail never arrives: n8n Executions tab, Resend domain, spam folder, and whether the Database Webhook shows 2xx.
+If signup mail never arrives: n8n Executions tab, Gmail Spam, and whether the Database Webhook shows 2xx. Waitlist users may also see your message in Spam because From is Gmail, not teahappy.com.
 
 ---
 

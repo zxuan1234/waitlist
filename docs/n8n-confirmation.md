@@ -6,6 +6,6 @@ Do **not** import the n8n template that uses Google Sheets and 6-digit codes. Th
 
 - Import `n8n/teahappy-waitlist-emails.json`
 - Follow **[click-by-click setup](n8n-setup.md)**
-- SMTP: **Resend** free tier (see that doc)
+- SMTP: **Gmail** if you have no domain (see that doc). Resend later if you buy one.
 
 Visitor mail has a **confirm link** (not a code). Click sets `confirmed_at` on the same row. You also get a **daily CSV** of new signups.
