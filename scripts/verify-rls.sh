@@ -19,10 +19,10 @@ fi
 
 echo "== 1. Insert a row so an empty table cannot fake a passing read test"
 insert_code=$(curl -sS -o /tmp/waitlist-insert-body -w "%{http_code}" -X POST \
-  "${base}?on_conflict=email" \
+  "${base}" \
   "${auth_headers[@]}" \
   -H "Content-Type: application/json" \
-  -H "Prefer: resolution=ignore-duplicates,return=minimal" \
+  -H "Prefer: return=minimal" \
   -d "{\"email\":\"${email}\"}")
 
 echo "INSERT HTTP ${insert_code}"

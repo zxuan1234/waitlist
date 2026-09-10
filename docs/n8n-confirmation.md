@@ -27,7 +27,7 @@ visitor → Teahappy page → Supabase INSERT
 
 Mail says: we have this address; the milk tea voucher comes when the app launches; this is not the voucher.
 
-Three n8n nodes. No Sheets. No code. No second page. Duplicates that `ON CONFLICT DO NOTHING` do not insert, so they should not email again.
+Three n8n nodes. No Sheets. No code. No second page. Duplicates that hit the unique constraint do not insert (HTTP 409), so they should not fire the webhook again.
 
 ### Step 2 — double opt-in the simple way (later)
 

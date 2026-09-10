@@ -8,7 +8,7 @@ The brief asked for a waitlist page, Netlify, Supabase, and this write-up. Every
 
 **How emails reach the database.** Direct from the browser with the anon key (Option A). With a few hours, I wanted one security model to get right — RLS — rather than a function plus a master key that bypasses RLS. The cost is that all safety sits in `schema.sql`.
 
-**Duplicates.** Unique constraint on `email`, and the insert uses PostgREST `Prefer: resolution=ignore-duplicates` (`ON CONFLICT DO NOTHING`). New and repeat signups see the same sentence: "You're on the list." I do not confirm whether an address was already present.
+**Duplicates.** Unique constraint on `email`. A second insert is HTTP 409; the page still shows the same success sentence. I do not confirm whether an address was already present. We do not use PostgREST `on_conflict` upsert: that path needs a SELECT policy and is how a public read can sneak in.
 
 **What is stored.** `id`, `email`, `created_at`. No IP, no user agent, no UTM. I did not need them, and they would widen what a leak exposes.
 
@@ -81,4 +81,4 @@ I used Cursor Grok 4.6 as a cloud agent to implement the spec in this repo.
 - **What I asked it for:** the page, `schema.sql`, Netlify build injection, this write-up, and the RLS verify script, following `waitlist-takehome-spec.md`. Later: rebrand to Teahappy; document n8n confirmation mail as the next step (not built).
 - **What I changed or refused in the output:** no `service_role` key, no SELECT policy "to make the table easier to debug", no IP/user-agent columns, no React, no confirmation email. The first draft of an RLS policy often grants `SELECT` to `anon`; this schema does not. Grants are `INSERT` only.
 - **What I threw away:** a Netlify Function path (Option B). The locked spec is Option A, and a function would mean explaining a key that ignores RLS.
-- **What I do not fully understand:** nothing I shipped. PostgREST `resolution=ignore-duplicates` is the documented mapping to `ON CONFLICT DO NOTHING`; if that header were omitted, a duplicate would be HTTP 409 and the page still shows the same success sentence.
+- **What I do not fully understand:** nothing I shipped. A duplicate email is HTTP 409 from the unique constraint; the page still shows the same success sentence.

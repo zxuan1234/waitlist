@@ -61,7 +61,7 @@ docs/n8n-confirmation.md   planned Supabase → n8n confirmation mail
 | Decision | Choice |
 | --- | --- |
 | Path into Supabase | Browser → REST with the anon key |
-| Duplicates | Unique on `email`; `ON CONFLICT DO NOTHING` via PostgREST `ignore-duplicates` |
+| Duplicates | Unique on `email`. Second insert is 409; the page still says success. |
 | Columns | `id`, `email`, `created_at` |
 | Validation | `type="email"`, JS checks, database `CHECK` |
 | Spam | Honeypot field. Filled bots get a fake success and no insert. |

@@ -41,6 +41,7 @@ create policy "anon_can_insert"
 -- With RLS on and no SELECT policy, PostgREST returns [] to the anon key.
 -- Test that with scripts/verify-rls.sh.
 
--- Duplicate inserts: the unique constraint is the rule. The page sends
--- Prefer: resolution=ignore-duplicates, which PostgREST maps to
--- ON CONFLICT DO NOTHING, so a second signup is a silent success.
+-- Duplicate emails: unique constraint on email. The page inserts; a
+-- second signup is HTTP 409 and still shown as success. Do not use
+-- PostgREST on_conflict upsert here: that path needs a SELECT policy
+-- and would let the anon key read rows.

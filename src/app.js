@@ -41,8 +41,7 @@
 
   function joinUrl() {
     return (
-      config.supabaseUrl.replace(/\/$/, "") +
-      "/rest/v1/waitlist?on_conflict=email"
+      config.supabaseUrl.replace(/\/$/, "") + "/rest/v1/waitlist"
     );
   }
 
@@ -58,7 +57,7 @@
     var headers = {
       apikey: config.supabaseAnonKey,
       "Content-Type": "application/json",
-      Prefer: "resolution=ignore-duplicates,return=minimal",
+      Prefer: "return=minimal",
     };
     // Legacy JWT anon keys use Bearer. Publishable keys (sb_publishable_) do not.
     if (String(config.supabaseAnonKey).indexOf("eyJ") === 0) {
@@ -100,8 +99,7 @@
 
     submitEmail(email)
       .then(function (response) {
-        // 201: inserted or silently ignored duplicate.
-        // 409: unique violation if ignore-duplicates was skipped; same user-facing result.
+        // 201: inserted. 409: unique email already present; same user-facing result.
         if (response.ok || response.status === 409) {
           setStatus("ok", SUCCESS_MESSAGE);
           form.reset();
