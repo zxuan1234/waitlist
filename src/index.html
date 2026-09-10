@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teahappy — free milk tea voucher waitlist</title>
+    <meta
+      name="description"
+      content="Teahappy is a beverage shop launching a new app. Join the waitlist for a free milk tea voucher."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="mast">
+      <p class="wordmark">Teahappy</p>
+    </header>
+
+    <main>
+      <p class="kicker">New app · free milk tea voucher</p>
+      <h1>A free milk tea when the app opens.</h1>
+      <p class="lede">
+        Teahappy is a beverage shop. We are launching an app, and the people on
+        this list get a free milk tea voucher. Spots are filling up — leave your
+        email and we will write when it is ready to claim.
+      </p>
+
+      <form id="waitlist-form" novalidate>
+        <div class="honeypot" aria-hidden="true">
+          <label for="company">Company</label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            maxlength="254"
+            required
+            spellcheck="false"
+          />
+        </div>
+
+        <button type="submit" id="submit-btn">Save my voucher spot</button>
+      </form>
+
+      <p id="status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
+
+      <p class="fineprint">
+        We store your email, when you joined, and whether you confirmed.
+        After you join, n8n emails a confirm link — that is not the voucher.
+        The drink code is sent when the app launches, only if you confirmed.
+      </p>
+    </main>
+
+    <footer>
+      <p>Teahappy waitlist. Take-home project, not a live shop.</p>
+    </footer>
+
+    <script>
+      window.TEAHAPPY_CONFIG = {
+        supabaseUrl: "__SUPABASE_URL__",
+        supabaseAnonKey: "__SUPABASE_ANON_KEY__",
+      };
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>
