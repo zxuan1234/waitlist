@@ -3,7 +3,7 @@
 
   var EMAIL_RE = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/;
   var SUCCESS_MESSAGE =
-    "You're on the list. Your milk tea voucher is waiting for launch day.";
+    "You're on the list. Check your email and click the confirm link so we can send the voucher at launch.";
   var INPUT_ERROR = "Enter an email that looks like name@example.com.";
   var SERVER_ERROR = "Something on our end went wrong. Try again in a minute.";
   var CONFIG_ERROR =

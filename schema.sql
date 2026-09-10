@@ -1,47 +1,74 @@
 -- Waitlist table, constraints, grants, and RLS.
 -- Run this in the Supabase SQL editor (or via the CLI) on a new project.
 -- Reviewers: this file is the source of truth for question 3.
-
--- gen_random_uuid() is available on hosted Supabase; no extra extension needed.
+-- Safe to re-run.
 
 create table if not exists public.waitlist (
   id uuid primary key default gen_random_uuid(),
   email text not null,
   created_at timestamptz not null default now(),
+  confirm_token uuid not null default gen_random_uuid(),
+  confirmed_at timestamptz,
   constraint email_length check (char_length(email) between 3 and 254),
   constraint email_is_lowercase check (email = lower(email)),
   constraint email_format check (
     email ~ '^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$'
   ),
-  constraint waitlist_email_key unique (email)
+  constraint waitlist_email_key unique (email),
+  constraint waitlist_confirm_token_key unique (confirm_token)
 );
 
-comment on table public.waitlist is
-  'Waitlist signups. Unique on email. RLS: insert for anon, no select.';
+-- Existing projects created before confirm_token: add the columns.
+alter table public.waitlist add column if not exists confirm_token uuid;
+alter table public.waitlist add column if not exists confirmed_at timestamptz;
 
--- Privileges: anon may insert. SELECT is granted so PostgREST can run
--- upserts and queries; RLS (no SELECT policy) still returns no rows.
+update public.waitlist
+set confirm_token = gen_random_uuid()
+where confirm_token is null;
+
+alter table public.waitlist alter column confirm_token set default gen_random_uuid();
+alter table public.waitlist alter column confirm_token set not null;
+
+create unique index if not exists waitlist_confirm_token_key on public.waitlist (confirm_token);
+
+comment on table public.waitlist is
+  'Waitlist signups. Unique on email. RLS: insert for anon, no select. Confirm via n8n + token.';
+
 revoke all on table public.waitlist from public, anon, authenticated;
 grant insert, select on table public.waitlist to anon, authenticated;
 
 alter table public.waitlist enable row level security;
 
--- Drop and recreate so re-running this file is safe.
 drop policy if exists "anon_can_insert" on public.waitlist;
 
--- RLS is deny-by-default. Without this policy, inserts return:
--- "new row violates row-level security policy"
 create policy "anon_can_insert"
   on public.waitlist
   for insert
   to anon, authenticated
-  with check (true);
+  with check (confirmed_at is null);
 
 -- Intentionally no SELECT / UPDATE / DELETE policies.
--- With RLS on and no SELECT policy, PostgREST returns [] to the anon key.
--- Test that with scripts/verify-rls.sh.
+-- Confirm clicks are applied by n8n using the secret key (bypasses RLS).
+-- Test reads with scripts/verify-rls.sh.
 
--- Duplicate emails: unique constraint on email. The page inserts; a
--- second signup is HTTP 409 and still shown as success. Do not use
--- PostgREST on_conflict upsert here: that path needs a SELECT policy
--- and would let the anon key read rows.
+-- Ignore a client-supplied confirmed_at / token on insert.
+create or replace function public.waitlist_on_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.confirmed_at := null;
+  new.confirm_token := gen_random_uuid();
+  return new;
+end;
+$$;
+
+revoke all on function public.waitlist_on_insert() from public, anon, authenticated;
+
+drop trigger if exists waitlist_on_insert on public.waitlist;
+create trigger waitlist_on_insert
+  before insert on public.waitlist
+  for each row
+  execute function public.waitlist_on_insert();

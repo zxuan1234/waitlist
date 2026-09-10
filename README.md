@@ -4,7 +4,9 @@ A one-page waitlist for **Teahappy**, a beverage shop launching an app. People o
 
 Live site: *not deployed from this environment — connect the repo to Netlify and add the two env vars below.*
 
-Emails go from the browser to Supabase. There is no Netlify Function and no `service_role` key.
+Emails go from the browser to Supabase. Mail is **n8n** (confirm link + daily CSV to you). There is no Netlify Function and no secret key in the page.
+
+See `docs/n8n-setup.md` and `n8n/teahappy-waitlist-emails.json`.
 
 ## Stack
 
@@ -53,7 +55,8 @@ src/                   page source (placeholders, not secrets)
 build.js               copies src/ → dist/ and fills placeholders
 scripts/verify-rls.sh  stranger-with-the-anon-key read test
 WRITEUP.md             assumptions, scale, who can read emails, next steps
-docs/n8n-confirmation.md   planned Supabase → n8n confirmation mail
+docs/n8n-setup.md      click-by-click: Resend, import workflow, Supabase webhook
+n8n/teahappy-waitlist-emails.json   import this into n8n
 ```
 
 ## Locked choices
@@ -62,6 +65,6 @@ docs/n8n-confirmation.md   planned Supabase → n8n confirmation mail
 | --- | --- |
 | Path into Supabase | Browser → REST with the anon key |
 | Duplicates | Unique on `email`. Second insert is 409; the page still says success. |
-| Columns | `id`, `email`, `created_at` |
+| Columns | `id`, `email`, `created_at`, `confirm_token`, `confirmed_at` |
 | Validation | `type="email"`, JS checks, database `CHECK` |
 | Spam | Honeypot field. Filled bots get a fake success and no insert. |
