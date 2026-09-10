@@ -1,51 +1,72 @@
-# n8n confirmation mail (next, not in this build)
+# n8n confirmation mail (keep Supabase, skip that template)
 
-The landing page does not call n8n. The browser writes to Supabase. Mail is a private reaction to a successful insert.
+Do **not** import [n8n workflow 3953](https://n8n.io/workflows/3953-double-opt-in-email-verification-system-with-google-sheets/) as-is. It is too much for Teahappy, and it replaces the database you already have.
+
+That template:
+
+- Collects email in **n8n Forms**, not this landing page
+- Stores rows in **Google Sheets**
+- Sends a **6-digit code**, then a second form to type it, then a **third** “main form”
+- Is built for lead-gen + a long questionnaire after verify
+
+Teahappy only needs: one email field, one table, a voucher later. Two databases (Sheets + Supabase) means two places that hold PII, two places that can drift, and Sheets has no RLS. At “lots of people want a free drink,” Sheets API quotas and a shared spreadsheet are the wrong store.
+
+**Keep Supabase. Keep this page. Use n8n only to send mail.**
+
+## Simplify in two steps
+
+### Step 1 — one email, no extra forms (do this first)
 
 ```
-visitor → Netlify page → Supabase INSERT (anon key, RLS)
+visitor → Teahappy page → Supabase INSERT
                               ↓
-                    Database Webhook (INSERT only)
+                    Database Webhook (INSERT)
                               ↓
-                    n8n webhook (secret URL)
-                              ↓
-                    Resend / SendGrid / SMTP
+                    n8n (3 nodes): Webhook → check email → SMTP
 ```
 
-## Why this shape
+Mail says: we have this address; the milk tea voucher comes when the app launches; this is not the voucher.
 
-- The company already runs n8n.
-- The anon key in the page still cannot read the table.
-- If n8n is down, the person is still on the list; they just get no mail.
-- Do not put an n8n URL in `src/app.js`. Anyone who views source could fire voucher emails.
+Three n8n nodes. No Sheets. No code. No second page. Duplicates that `ON CONFLICT DO NOTHING` do not insert, so they should not email again.
 
-## Supabase
+### Step 2 — double opt-in the simple way (later)
+
+Skip 6-digit codes and extra n8n forms. Put a **confirm link** in that same email:
+
+`https://your-n8n.example/webhook/confirm?token=...`
+
+Click → n8n sets `confirmed_at` on that row in **Supabase**. Launch-day voucher mail only goes to rows where `confirmed_at` is set.
+
+A link is one click. A 6-digit code is: open mail, remember the code, come back, type it, handle retries. That is the template’s complexity. You do not need it for a waitlist.
+
+## What n8n should never do here
+
+- Host the signup form (you already have `src/index.html`)
+- Use Google Sheets as the list
+- Call n8n from page JavaScript (the URL would be public)
+- Hold `service_role` and `SELECT *` the table if a webhook payload is enough
+- Send the voucher code in the first mail
+
+## Supabase webhook (step 1)
 
 1. Run `schema.sql` and `scripts/verify-rls.sh`. Stop if the read test fails.
-2. Database → Webhooks → create one on `public.waitlist` for **Insert**.
-3. URL: the n8n production webhook URL. Use a long random path; treat it as a secret.
-4. Leave Update/Delete off. You do not want mail on every dashboard edit.
+2. Database → Webhooks → `public.waitlist` → **Insert** only.
+3. URL = n8n production webhook (long random path; treat as a secret).
 
-Payload is the new row (`id`, `email`, `created_at`). n8n does not need to query the table. Prefer that over storing `service_role` in n8n credentials.
+n8n reads `email` from the webhook body. It does not need Sheets.
 
-`ON CONFLICT DO NOTHING` means a second signup with the same email often **does not insert**, so this webhook should not fire twice for one address.
+## n8n nodes (step 1)
 
-## n8n workflow (three nodes)
+1. **Webhook** — POST, respond immediately so Supabase does not wait on SMTP.
+2. **If** — address looks like an email (same idea as the database CHECK).
+3. **Send email** — SMTP or Resend/SendGrid on your domain, not a personal Gmail inbox.
 
-1. **Webhook** — POST, response immediately (do not make Supabase wait on the inbox).
-2. **If** — `email` looks like an email (same shape as the database CHECK). Drop the rest.
-3. **Send email** — transactional provider. Subject like “Teahappy: you’re on the milk tea list.” Body: we got this address; the voucher is sent when the app launches; this is not the voucher itself.
+Lock down who can open n8n executions; the payload is PII. Do not Slack the raw email to a public channel.
 
-Then:
+## Before you advertise
 
-- Turn off saving full execution data in production if the instance is shared, or restrict who can open executions. The payload is PII.
-- Do not post the raw email to a public Slack channel.
-- Do not send the voucher code in this first mail.
+A script that only POSTs `{ "email": "..." }` skips the honeypot and will hit this workflow. Add Turnstile or a WAF rate limit before the voucher is public.
 
-## Before you advertise the page
+## Schema when you add step 2
 
-Wire a bot check (Turnstile or a WAF rate limit). A script that only posts `{ "email": "..." }` bypasses the honeypot and will hit this workflow once per fake address.
-
-## After this works
-
-Add `confirmed_at` (and a token) and change this mail to a confirm link. A second n8n flow at launch sends vouchers only where `confirmed_at` is set.
+Keep the same table. Add something like `confirm_token` (long random, not 6 digits) and `confirmed_at`. Still no Google Sheet.

@@ -64,11 +64,11 @@ The page is done on purpose. A voucher waitlist still needs mail, and Teahappy a
 
 1. **Deploy and prove the read is blocked.** Netlify + `schema.sql` + `scripts/verify-rls.sh`. If anon can `SELECT`, do not add email sending. You would be mailing from a public list.
 
-2. **Confirmation mail in n8n, triggered by Supabase, not by the browser.** Database webhook on `INSERT` into `waitlist` → n8n webhook → Resend/SendGrid (not a personal Gmail node). The page stays Option A. n8n never gets a `service_role` key that can `SELECT *`. The webhook body is one new row; that is enough to send “you’re on the list, voucher at launch.” Duplicates that hit `ON CONFLICT DO NOTHING` do not insert, so they should not fire again. See `docs/n8n-confirmation.md`.
+2. **Confirmation mail in n8n, triggered by Supabase, not by the browser.** Do not import the n8n “double opt-in + Google Sheets” template — extra forms and a second database. Database webhook on `INSERT` → n8n → SMTP. Same table. See `docs/n8n-confirmation.md`.
 
 3. **Bot check before the mail volume is real.** A voucher page will get scripts that POST only `email`. Those skip the honeypot and would make n8n send all day. Turnstile (or similar) on the form, or a provider WAF rate limit, before this is advertised.
 
-4. **Double opt-in, then the voucher.** The first n8n mail should be “click to confirm,” with `confirmed_at` on the row. Only confirmed addresses get a voucher code at launch (a second n8n flow, batch). Same n8n habit, extra column. Without the click, people can gift (or spam) someone else’s inbox.
+4. **Double opt-in, then the voucher.** Confirm with a **link in the email**, not a 6-digit code and extra forms. `confirmed_at` on the Supabase row. Only those addresses get a voucher at launch (second n8n flow).
 
 5. **Unsubscribe, and an alert if insert rate spikes.** Still out of the 3–4 hour build; both are real once you hold PII and promise a drink.
 
