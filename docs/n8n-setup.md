@@ -39,12 +39,16 @@ Google Sheets is not used. The secret key lives only in n8n.
 
 | Field | Value |
 | --- | --- |
-| Host | `smtp.gmail.com` |
-| Port | `587` |
-| SSL/TLS | STARTTLS (or “TLS”, not SSL on 465, unless n8n offers 465 SSL) |
 | User | your full address, e.g. `you@gmail.com` |
-| Password | the 16-character **App password** |
-| From | the **same** `you@gmail.com` (Gmail rejects a fake From) |
+| Password | 16-character **App password**, field set to **Fixed** (not Expression / *fx*) |
+| Host | `smtp.gmail.com` |
+| Port | `465` |
+| SSL/TLS | **On** |
+| Client Host Name | leave empty |
+
+If it still fails, try port `587` and turn **SSL/TLS off** (n8n then uses STARTTLS). Do not use 587 with SSL/TLS on — that is the usual “Couldn’t connect” error.
+
+Never put the app password in GitHub, chat, or screenshots. If it leaked, delete that App password in Google and create a new one.
 
 `__FROM_EMAIL__` and `__STAFF_EMAIL__` can both be `you@gmail.com`. Confirm mails to waitlist people will show as coming from your Gmail, not “Teahappy.com”. That is expected without a domain.
 
@@ -118,3 +122,9 @@ If signup mail never arrives: n8n Executions tab, Gmail Spam, and whether the Da
 - **Confirm click:** n8n uses the **secret** key. That key bypasses RLS. Keep n8n login private.
 
 Do not add a SELECT policy so the website can “show the list.”
+
+---
+
+## 8. Later, if you own a domain
+
+Resend (100/day free): verify the domain, SMTP host `smtp.resend.com`, user `resend`, password `re_...` API key, From `hello@yourdomain`. Swap the n8n SMTP credential. Same workflow.
