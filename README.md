@@ -1,7 +1,7 @@
 # Teahappy waitlist
 A one-page waitlist for Teahappy, a beverage shop launching an app. People on the list get a free milk tea voucher. The original brief never named a product. Thus, I have this story to make the page has a reason people are signing up.
 
-Live: 
+Live:  https://happytea.netlify.app
 
 **Review:** [WRITEUP.md](WRITEUP.md) — assumptions, 10,000 signups in an hour, who can read emails.
 
