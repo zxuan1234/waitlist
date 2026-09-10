@@ -114,7 +114,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.first().json;\nconst token = (j.query && j.query.token) || j.token || '';\nconst ok = /^[0-9a-f-]{36}$/i.test(String(token));\nreturn [{ json: { ok, token: String(token) } }];\n"
+        "jsCode": "const j = $input.first().json;\nconst body = j.body && typeof j.body === 'object' ? j.body : {};\nconst token = (j.query && j.query.token) || j.token || body.token || '';\nconst ok = /^[0-9a-f-]{36}$/i.test(String(token));\nreturn [{ json: { ok, token: String(token) } }];\n"
       },
       "id": "55555555-5555-4555-a555-555555555555",
       "name": "Read confirm token",
@@ -272,7 +272,7 @@
     },
     {
       "parameters": {
-        "url": "=__SUPABASE_URL__/rest/v1/waitlist?select=email,created_at,confirmed_at&created_at=gte.{{ $now.minus({days:1}).toISO() }}&order=created_at.desc",
+        "url": "=__SUPABASE_URL__/rest/v1/waitlist?select=email,created_at,confirmed_at&created_at=gte.{{ $now.minus({days:1}).toUTC().toISO() }}&order=created_at.desc",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

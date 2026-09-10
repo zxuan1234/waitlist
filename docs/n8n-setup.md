@@ -119,7 +119,14 @@ If confirm click errors with `permission denied for table waitlist` / GRANT to `
 grant select, insert, update, delete on table public.waitlist to service_role;
 ```
 
-Then click the same confirm link again. `service_role` skips RLS but still needs these GRANTs. The website stays insert-only.
+If **Fetch new signups** says **Credentials not found**:
+
+1. Set **Authentication** to **None** (do not leave Generic Auth Type empty).
+2. Turn **Send Headers** on.
+3. Headers: `apikey` = service_role JWT, `Authorization` = `Bearer` + the same JWT.
+4. In the URL, use `{{ $now.minus({days:1}).toUTC().toISO() }}` so the time has no `+08:00` (that `+` breaks the query string).
+
+A “Supabase API” credential is optional. Empty Generic Auth is what causes Credentials not found.
 
 ---
 
