@@ -27,12 +27,12 @@ Open http://localhost:4173
 ## Deploy
 
 1. Create a free Supabase project. In the SQL editor, run `schema.sql`.
-2. Copy **Project URL** and the **anon public** key. Do not copy the `service_role` key.
+2. Copy **Project URL** (green **Connect** button) and the **publishable** key (`sb_publishable_…`) or the **Legacy anon** JWT. Do not copy `sb_secret_` or `service_role`.
 3. Create a Netlify site from this repo. Build command and publish directory are in `netlify.toml`.
 4. In Netlify: Site configuration → Environment variables:
 
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_URL` — `https://….supabase.co` from **Connect**, not the publishable key
+   - `SUPABASE_ANON_KEY` — `sb_publishable_…` or the Legacy `anon` JWT
 
 5. Trigger a deploy. Confirm the live page source contains the real URL, not `__SUPABASE_URL__`.
 6. Prove reads are blocked:
