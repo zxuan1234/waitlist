@@ -19,10 +19,10 @@ create table if not exists public.waitlist (
 comment on table public.waitlist is
   'Waitlist signups. Unique on email. RLS: insert for anon, no select.';
 
--- Privileges: defense in depth alongside RLS.
--- Anon (the browser) may insert. Nobody except privileged roles may select.
+-- Privileges: anon may insert. SELECT is granted so PostgREST can run
+-- upserts and queries; RLS (no SELECT policy) still returns no rows.
 revoke all on table public.waitlist from public, anon, authenticated;
-grant insert on table public.waitlist to anon;
+grant insert, select on table public.waitlist to anon;
 
 alter table public.waitlist enable row level security;
 
@@ -36,8 +36,8 @@ create policy "anon_can_insert"
   with check (true);
 
 -- Intentionally no SELECT / UPDATE / DELETE policies.
--- With RLS on and no SELECT policy, PostgREST returns [] to the anon key,
--- even if someone later grants SELECT by mistake. Test that with scripts/verify-rls.sh.
+-- With RLS on and no SELECT policy, PostgREST returns [] to the anon key.
+-- Test that with scripts/verify-rls.sh.
 
 -- Duplicate inserts: the unique constraint is the rule. The page sends
 -- Prefer: resolution=ignore-duplicates, which PostgREST maps to

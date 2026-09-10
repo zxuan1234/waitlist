@@ -55,14 +55,18 @@
   }
 
   function submitEmail(email) {
+    var headers = {
+      apikey: config.supabaseAnonKey,
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates,return=minimal",
+    };
+    // Legacy JWT anon keys use Bearer. Publishable keys (sb_publishable_) do not.
+    if (String(config.supabaseAnonKey).indexOf("eyJ") === 0) {
+      headers.Authorization = "Bearer " + config.supabaseAnonKey;
+    }
     return fetch(joinUrl(), {
       method: "POST",
-      headers: {
-        apikey: config.supabaseAnonKey,
-        Authorization: "Bearer " + config.supabaseAnonKey,
-        "Content-Type": "application/json",
-        Prefer: "resolution=ignore-duplicates,return=minimal",
-      },
+      headers: headers,
       body: JSON.stringify({ email: email }),
     });
   }

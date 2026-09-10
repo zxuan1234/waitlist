@@ -10,8 +10,12 @@ email="rls-proof-$(date +%s)@example.com"
 base="${SUPABASE_URL%/}/rest/v1/waitlist"
 auth_headers=(
   -H "apikey: ${SUPABASE_ANON_KEY}"
-  -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
 )
+# Legacy JWT anon keys also go on Authorization. Publishable keys (sb_publishable_)
+# are not JWTs; Bearer would be rejected or ignored.
+if [[ "${SUPABASE_ANON_KEY}" == eyJ* ]]; then
+  auth_headers+=(-H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+fi
 
 echo "== 1. Insert a row so an empty table cannot fake a passing read test"
 insert_code=$(curl -sS -o /tmp/waitlist-insert-body -w "%{http_code}" -X POST \

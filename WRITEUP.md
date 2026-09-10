@@ -42,7 +42,7 @@ That is under three inserts per second. I looked at the public pricing pages on 
 | --- | --- | --- |
 | Me, and anyone I invite to the Supabase project | Yes | Dashboard / SQL editor use a privileged role, not `anon` |
 | Anyone with the `service_role` key | Yes | That key bypasses RLS by design. It is not in this repo, not in Netlify env for this site, and not in the page |
-| Anyone with the **anon** key (everyone who loads the page) | **Insert only, no read** | RLS is on; the only policy is `INSERT` for `anon`; `SELECT` is revoked. Proof: `scripts/verify-rls.sh` |
+| Anyone with the **anon / publishable** key (everyone who loads the page) | **Insert only, no read** | RLS is on; the only policy is `INSERT` for `anon`. SELECT is granted so the API can run the query; with no SELECT policy the result is `[]`. Proof: `scripts/verify-rls.sh` |
 | Anyone with admin access to the Netlify site | They can read the anon key from env vars, which does not grant SELECT. They cannot read rows unless they also have Supabase access | Netlify env is `SUPABASE_URL` and `SUPABASE_ANON_KEY` only |
 | Supabase and Netlify | Yes, as operators, per their terms | I did not independently audit that; it is the hosting tradeoff |
 
