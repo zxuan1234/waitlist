@@ -50,7 +50,8 @@ schema.sql             table, unique email, CHECK, RLS, grants
 src/                   page source (placeholders, not secrets)
 build.js               copies src/ → dist/ and fills placeholders
 scripts/verify-rls.sh  stranger-with-the-anon-key read test
-WRITEUP.md             assumptions, scale, who can read emails
+WRITEUP.md             assumptions, scale, who can read emails, next steps
+docs/n8n-confirmation.md   planned Supabase → n8n confirmation mail
 ```
 
 ## Locked choices

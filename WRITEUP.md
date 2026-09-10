@@ -34,7 +34,7 @@ That is under three inserts per second. I looked at the public pricing pages on 
 
 **What actually breaks first.** Not latency. A free voucher is a magnet for bots and for people hitting submit over and over. With no rate limit, 10,000 signups in an hour is probably not 10,000 people. The honeypot catches dumb bots that fill every field. It does not catch a script that only posts `email`. The unique constraint stops the same address repeating, not 10,000 distinct fake addresses. You then have a list you cannot trust, and a pile of voucher claims you cannot honour. That is worse than a slow page.
 
-**What I would add, in order:** rate limiting (needs a server, so Option B or a provider WAF), then a real bot check (Turnstile), then an alert when insert rate spikes. I would not start with a cache or a queue at this volume.
+**What I would add, in order:** (1) go live and prove RLS with `scripts/verify-rls.sh`, (2) confirmation mail through n8n on insert, not from the page, (3) a real bot check before that mail can be abused, (4) double opt-in plus a way to send the actual voucher. Detail in [What I would do next](#what-i-would-do-next). I would not start with a cache or a queue at this volume.
 
 ## Who can read the stored emails, and how I know
 
@@ -58,11 +58,27 @@ Expected: insert HTTP 201, select body `[]`, `PASS`.
 
 If you see a JSON array of emails, RLS is off or a SELECT policy exists. Do not leave the site up.
 
+## What I would do next
+
+The page is done on purpose. A voucher waitlist still needs mail, and Teahappy already uses n8n, so that is the next system — **after** the list is private.
+
+1. **Deploy and prove the read is blocked.** Netlify + `schema.sql` + `scripts/verify-rls.sh`. If anon can `SELECT`, do not add email sending. You would be mailing from a public list.
+
+2. **Confirmation mail in n8n, triggered by Supabase, not by the browser.** Database webhook on `INSERT` into `waitlist` → n8n webhook → Resend/SendGrid (not a personal Gmail node). The page stays Option A. n8n never gets a `service_role` key that can `SELECT *`. The webhook body is one new row; that is enough to send “you’re on the list, voucher at launch.” Duplicates that hit `ON CONFLICT DO NOTHING` do not insert, so they should not fire again. See `docs/n8n-confirmation.md`.
+
+3. **Bot check before the mail volume is real.** A voucher page will get scripts that POST only `email`. Those skip the honeypot and would make n8n send all day. Turnstile (or similar) on the form, or a provider WAF rate limit, before this is advertised.
+
+4. **Double opt-in, then the voucher.** The first n8n mail should be “click to confirm,” with `confirmed_at` on the row. Only confirmed addresses get a voucher code at launch (a second n8n flow, batch). Same n8n habit, extra column. Without the click, people can gift (or spam) someone else’s inbox.
+
+5. **Unsubscribe, and an alert if insert rate spikes.** Still out of the 3–4 hour build; both are real once you hold PII and promise a drink.
+
+n8n becomes another place that can read emails (execution history). Lock that instance down the same way as the Supabase dashboard.
+
 ## AI usage
 
 I used Cursor Grok 4.6 as a cloud agent to implement the spec in this repo.
 
-- **What I asked it for:** the page, `schema.sql`, Netlify build injection, this write-up, and the RLS verify script, following `waitlist-takehome-spec.md`. Later: rebrand from a placeholder product to Teahappy (beverage shop, free milk tea voucher for the new app).
+- **What I asked it for:** the page, `schema.sql`, Netlify build injection, this write-up, and the RLS verify script, following `waitlist-takehome-spec.md`. Later: rebrand to Teahappy; document n8n confirmation mail as the next step (not built).
 - **What I changed or refused in the output:** no `service_role` key, no SELECT policy "to make the table easier to debug", no IP/user-agent columns, no React, no confirmation email. The first draft of an RLS policy often grants `SELECT` to `anon`; this schema does not. Grants are `INSERT` only.
 - **What I threw away:** a Netlify Function path (Option B). The locked spec is Option A, and a function would mean explaining a key that ignores RLS.
 - **What I do not fully understand:** nothing I shipped. PostgREST `resolution=ignore-duplicates` is the documented mapping to `ON CONFLICT DO NOTHING`; if that header were omitted, a duplicate would be HTTP 409 and the page still shows the same success sentence.
