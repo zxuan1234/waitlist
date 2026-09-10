@@ -22,17 +22,19 @@ comment on table public.waitlist is
 -- Privileges: anon may insert. SELECT is granted so PostgREST can run
 -- upserts and queries; RLS (no SELECT policy) still returns no rows.
 revoke all on table public.waitlist from public, anon, authenticated;
-grant insert, select on table public.waitlist to anon;
+grant insert, select on table public.waitlist to anon, authenticated;
 
 alter table public.waitlist enable row level security;
 
 -- Drop and recreate so re-running this file is safe.
 drop policy if exists "anon_can_insert" on public.waitlist;
 
+-- RLS is deny-by-default. Without this policy, inserts return:
+-- "new row violates row-level security policy"
 create policy "anon_can_insert"
   on public.waitlist
   for insert
-  to anon
+  to anon, authenticated
   with check (true);
 
 -- Intentionally no SELECT / UPDATE / DELETE policies.
