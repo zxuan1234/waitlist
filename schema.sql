@@ -36,6 +36,8 @@ comment on table public.waitlist is
 
 revoke all on table public.waitlist from public, anon, authenticated;
 grant insert, select on table public.waitlist to anon, authenticated;
+-- service_role bypasses RLS but still needs GRANTs. n8n uses it to set confirmed_at and read the digest.
+grant select, insert, update, delete on table public.waitlist to service_role;
 
 alter table public.waitlist enable row level security;
 

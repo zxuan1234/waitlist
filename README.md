@@ -45,7 +45,7 @@ SUPABASE_URL=... SUPABASE_ANON_KEY=... ./scripts/verify-rls.sh
 
 You want `PASS` and a body of `[]`. Insert happens first so an empty table cannot fake that result.
 
-If insert fails with `new row violates row-level security policy`, RLS is on but the insert policy is missing. In the SQL editor run the `create policy "anon_can_insert"` block from `schema.sql`, then run the script again.
+If confirm-click fails with `permission denied for table waitlist` and a hint to GRANT to `service_role`, run that grant in the SQL editor (it is already in `schema.sql`). `service_role` skips RLS but still needs table privileges.
 
 ## Layout
 
