@@ -113,6 +113,14 @@ Payload is the new row, including `confirm_token`. n8n does not need to `SELECT`
 
 If signup mail never arrives: n8n Executions tab, Gmail Spam, and whether the Database Webhook shows 2xx. Waitlist users may also see your message in Spam because From is Gmail, not teahappy.com.
 
+If confirm click errors with `permission denied for table waitlist` / GRANT to `service_role`:
+
+```sql
+grant select, insert, update, delete on table public.waitlist to service_role;
+```
+
+Then click the same confirm link again. `service_role` skips RLS but still needs these GRANTs. The website stays insert-only.
+
 ---
 
 ## 7. What staff see vs the public
