@@ -1,76 +1,59 @@
-# Waitlist take-home — notes for review
+# Write-up
 
-Static page on Netlify. Browser inserts into Supabase with the publishable key. Confirm mail and a daily CSV run in n8n, not in the page.
+## Assumptions and gaps
+The brief asked for a waitlist page, Netlify, Supabase, and this write-up. Everything else was unspecified. I filled the gaps as follows and then stopped.
 
-I treated this as a small public form with a list that has to stay private, not as a mini-product. Feature count stayed low on purpose.
+**What the waitlist is for.** The brief never names a product. This page is Teahappy. A beverage shop launching an app, giving a free milk tea voucher to people who sign up. That is copy, not extra backend. I did not issue email or track the voucher in this version, I only store the email. A real launch would need a way to actually send the voucher and to stop one person claiming many with throwaway addresses.
 
-## Assumptions
+**How emails reach the database.** Direct from the browser with the anon key with a few hours, I wanted one security model to get right RLS rather than a function plus a master key that bypasses RLS. The cost is that all safety sits in `schema.sql`.
 
-The brief did not name a product, a duplicate policy, or how mail should work.
+**Duplicates.** Unique constraint on `email`. A second insert is HTTP 409, the page still shows the same success sentence. I do not confirm whether an address was already present. We do not use PostgREST `on_conflict` upsert, that path needs a SELECT policy and is how a public read can sneak in.
 
-**Product.** Teahappy — a beverage shop launching an app, free milk tea voucher for the list. Copy only. There is no voucher issuer in this repo.
+If the first confirm mail is lost, submitting the same address again does not send a second link. Unique on email blocks a new insert, so the insert-only webhook never runs. I left that on purpose.A resend path would need the secret key, since the page still cannot read rows. I would add it only if people were actually dropping off before confirm.
 
-**Path into the database.** Option A: the browser talks to PostgREST with the publishable / `anon` key. I did not put a Netlify Function in front of it. One security story (RLS in `schema.sql`) is easier to defend than a second privileged path on Netlify. `service_role` is not in git, not in Netlify env, not on the page. n8n holds it for confirm + digest.
+**What is stored.** `id`, `email`, `created_at`. No IP, no user agent, no UTM. I did not need them, and they would widen what a leak exposes.
 
-**Duplicates.** Unique on `email`. A second POST is HTTP 409; the UI still shows the same success line so the page does not leak whether an address is already stored. I do not use PostgREST `on_conflict` upsert: that needs a SELECT policy, which is how a public read sneaks in. I tried upsert on a live project; it came back RLS 401. Plain insert + unique is enough.
+**Validation.** The browser checks the shape of the string (`type="email"` plus a regex that matches the database `CHECK`). That is a suggestion, anyone can POST with curl. The database is the rule that cannot be edited in DevTools. I cannot tell whether an address exists without sending mail, which I am not doing.
 
-**Columns.** `id`, `email`, `created_at`, `confirm_token`, `confirmed_at`. No IP, user-agent, or UTM. A `BEFORE INSERT` trigger (security definer) zeros `confirmed_at` and mints `confirm_token`, so the client cannot self-confirm. n8n sets `confirmed_at` after the user clicks a link.
+**Spam.** A hidden honeypot. If it has a value, the page pretends to succeed and never calls Supabase. No CAPTCHA, no rate limit.
 
-**Validation.** Browser regex matches the table `CHECK`. That is a UX filter; curl can skip it. I cannot prove an inbox exists without sending mail.
+**Deliberately out of scope**
+- Actually sending or redeeming the milk tea voucher. This page only stores the email.
+- Unsubscribe or delete. I am collecting an email with no way for the owner to remove it.
+- Analytics and a custom domain.
+- A Netlify Function. I locked to RLS way.
 
-**Spam.** Honeypot field `#company`. Filled bots get a fake success and no insert. No CAPTCHA, no rate limit.
+## What would break at 10,000 signups in an hour
+That is under three inserts per second. I looked at the public pricing pages on 8 Sep 2026 rather than guessing.
 
-**Mail.** n8n, triggered by a Supabase Database Webhook on insert — not by JavaScript. Confirm is a **link**, not a 6-digit code. I did not use Google Sheets as a second store. SMTP is Gmail (no domain to verify for Resend). Staff see new rows via a daily CSV to my inbox, not a public admin page.
+**The page.** Static files on Netlify's CDN. 10,000 visitors in an hour is not a CDN problem. On the current credit-based Free plan ([docs](https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/credit-based-pricing-plans/)): 300 credits/month, then the site pauses. Web requests cost 2 credits per 10,000; bandwidth is 20 credits per GB. 10,000 page loads of a ~20 KB page is a few hundred MB and a couple of credits — fine. This site has no functions, so function compute is zero. The Free-plan number that would actually stop the site is burning the 300 credits (for example many production deploys at 15 credits each, or a lot of bandwidth), not this traffic spike.
 
-**Left out.** Voucher codes, unsubscribe, analytics, custom domain, Netlify Functions.
+**Supabase.** The Free plan lists **unlimited API requests**, 500 MB database, 5 GB egress + 5 GB cached egress, and pauses after a week of inactivity ([pricing](https://supabase.com/pricing)). 10,000 rows of email + timestamp is well under a megabyte. Three inserts per second is nothing for Postgres. Egress on this design is tiny (JSON bodies, no storage downloads). I am estimating the Postgres throughput; I looked up the quota numbers.
 
----
+**What actually breaks first.** Not latency. A free voucher is a magnet for bots and for people hitting submit over and over. With no rate limit, 10,000 signups in an hour is probably not 10,000 people. The honeypot catches dumb bots that fill every field. It does not catch a script that only posts `email`. The unique constraint stops the same address repeating, not 10,000 distinct fake addresses. You then have a list you cannot trust, and a pile of voucher claims you cannot honour. That is worse than a slow page.
 
-## 10,000 signups in an hour
-
-That is under three inserts per second. Quotas below are from vendor pages (8 Sep 2026), not guesses.
-
-**The page.** Static files on Netlify’s CDN. Not the bottleneck. Current credit-based Free plan: 300 credits/month, then the site pauses ([docs](https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/credit-based-pricing-plans/)). Web requests are 2 credits / 10,000; bandwidth 20 credits / GB. ~10,000 loads of a ~20 KB page is a few hundred MB and a couple of credits. This site has no functions. What would pause the site is burning the 300 credits (many production deploys at 15 credits each, or a lot of bandwidth), not this spike.
-
-**Supabase.** Free plan: unlimited API requests, 500 MB database, 5 GB + 5 GB cached egress, pause after a week idle ([pricing](https://supabase.com/pricing)). 10,000 rows of email + timestamps is well under a megabyte. Three inserts per second is nothing for Postgres.
-
-**What actually fails first.** Trust, not latency. A free voucher attracts bots. The honeypot misses a script that only posts `{ "email": "..." }`. Uniqueness stops the same address repeating, not 10,000 fake addresses. Then the list is not honourable. n8n would also try to send confirm mail up to Gmail limits — Gmail app-password SMTP is not a bulk sender.
-
-I would add, in order: a bot check (Turnstile or a WAF) before advertising the voucher; then launch-day mail only where `confirmed_at` is set. I would not add a cache or a queue at this volume.
-
----
+**What I would add, in order:** (1) go live and prove RLS with `scripts/verify-rls.sh`, (2) confirmation mail through n8n on insert, not from the page, (3) a real bot check before that mail can be abused, (4) double opt-in plus a way to send the actual voucher. Detail in [What I would do next](#what-i-would-do-next). I would not start with a cache or a queue at this volume.
 
 ## Who can read the emails
+Project owners and anyone invited into the Supabase project can read every row. Table Editor and the SQL editor use a privileged role.
 
-| Who | Read? | Why I believe that |
-| --- | --- | --- |
-| Project owners / anyone invited to the Supabase project | Yes | Table Editor and SQL use a privileged role |
-| Anyone holding `service_role` / secret key | Yes | Bypasses RLS. Lives only in n8n, for PATCH `confirmed_at` and SELECT for the CSV |
-| Anyone who can log into n8n | Yes (executions + digest) | Same as holding the secret while it is stored there |
-| Anyone with the publishable / `anon` key (the page) | **Insert only** | RLS on; INSERT policy only; no SELECT policy. `GRANT SELECT` is still there so PostgREST can run the query; the result is `[]`. Proof: `scripts/verify-rls.sh` inserts a row, then GET. An empty table with RLS *off* also returns `[]` — inserting first is the point |
-| Netlify site admins | Key only, not rows | Env is `SUPABASE_URL` + `SUPABASE_ANON_KEY` |
-| Supabase / Netlify as hosts | Yes, per their terms | Not independently audited |
+Anyone who holds the service_role or secret key can also read. That key bypasses RLS. I keep it only in n8n, where it PATCHes confirmed_at and SELECTs for the daily CSV. Anyone who can log into n8n can see those emails too. They can open past workflow runs, and they get that daily CSV in their inbox. While the secret key lives in n8n, that login is as powerful as holding the key.
 
-`service_role` still needs table GRANTs. After `REVOKE` from `PUBLIC`, confirm-clicks returned 403 until I granted `SELECT, UPDATE` to `service_role`. BYPASSRLS does not skip GRANT. That is in `schema.sql`.
+The publishable or anon key on the page cannot read. RLS is on, there is an INSERT policy, and there is no SELECT policy. GRANT SELECT still exists so PostgREST can run the query, but the result is an empty list. scripts/verify-rls.sh proves this. It inserts a row first, then GETs. An empty table with RLS off also returns an empty list, so the insert-first step is what makes the check real.
 
-```bash
-./scripts/verify-rls.sh
-```
+Netlify site admins can see SUPABASE_URL and SUPABASE_ANON_KEY in env. They do not get the rows.
 
-Expect insert 201, body `[]`, `PASS`. A JSON array of emails means RLS is off or a SELECT policy exists.
+Supabase and Netlify as hosts can read per their terms. I have not independently audited that.
 
----
+service_role still needs table GRANTs. After REVOKE from PUBLIC, confirm clicks returned 403 until I granted SELECT and UPDATE to service_role. BYPASSRLS does not skip GRANT. That grant is in schema.sql.
 
-## What I would do next
-
-Turnstile (or similar) before a public voucher campaign. At launch, a second n8n flow that sends voucher codes only where `confirmed_at` is set. An unsubscribe path. If we owned a domain, move SMTP from Gmail to Resend.
-
----
+I run ./scripts/verify-rls.sh locally. A pass looks like insert 201, an empty body, and PASS. A JSON array of emails means RLS is off or a SELECT policy exists.
 
 ## AI
+I used an LLM while writing this, mainly for CSS and a first pass at the page copy, which I then edited.
 
-I used an LLM while writing this. CSS and some of the HTML copy started as drafts I then edited. I also used it to pull the current Netlify credit and Supabase free-tier pages so the 10k/hour section was not a guess.
+I did not take the data path from the generated draft. I specified it. From the browser, inserts use the public key, and RLS allows insert only with no public read. Mail goes through n8n instead of the page, and a second signup with the same email triggers a unique-constraint 409 that the UI treats as a success. I avoided using upsert because that requires public read access.
 
-The data path I specified myself: browser → RLS insert, no public SELECT, mail in n8n not on the page, unique + 409 instead of upsert. Generated SQL/JSON that did not match that got changed — including after a live 403 because `service_role` still needs GRANT after `REVOKE FROM PUBLIC`, and after a digest query that broke on a `+08:00` timestamp.
+Where generated SQL or n8n JSON did not match that, I changed it. Two things I only caught on the live project were confirm clicks throwing a 403 until service_role was given a table GRANT, since bypassing RLS does not skip GRANT, and the daily digest query breaking due to a +08:00 timestamp in the URL.
 
-Happy to walk through `schema.sql` and the verify script on a call.
+Happy to walk through schema SQL file and the verify script on a call.

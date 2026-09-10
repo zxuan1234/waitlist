@@ -1,7 +1,4 @@
 -- Waitlist table, constraints, grants, and RLS.
--- Run this in the Supabase SQL editor (or via the CLI) on a new project.
--- Reviewers: this file is the source of truth for question 3.
--- Safe to re-run.
 
 create table if not exists public.waitlist (
   id uuid primary key default gen_random_uuid(),
