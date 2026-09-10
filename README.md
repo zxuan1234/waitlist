@@ -1,70 +1,28 @@
 # Teahappy waitlist
 
-A one-page waitlist for **Teahappy**, a beverage shop launching an app. People on the list get a free milk tea voucher. The original brief never named a product; this story is so the page has a reason people are signing up.
+Landing page for a beverage shop launching an app. People on the list get a free milk tea voucher at launch.
 
-Live site: *not deployed from this environment — connect the repo to Netlify and add the two env vars below.*
+Live: *(add Netlify URL)*
 
-Emails go from the browser to Supabase. Mail is **n8n** (confirm link + daily CSV to you). There is no Netlify Function and no secret key in the page.
-
-See `docs/n8n-setup.md` and `n8n/teahappy-waitlist-emails.json`.
+**Review:** [WRITEUP.md](WRITEUP.md) — assumptions, 10k signups/hour, who can read emails.
 
 ## Stack
 
-- Plain HTML, CSS, and JavaScript
-- Netlify for hosting (a 20-line `build.js` only injects env vars)
-- Supabase Postgres + RLS for storage
+Plain HTML/CSS/JS on Netlify. Browser → Supabase with the publishable key. n8n for a confirm-link email and a daily CSV. No Netlify Functions. `service_role` is not in this repo.
 
-## Local preview
+## Run locally
 
 ```bash
-cp .env.example .env   # optional; without real keys the form validates but will not save
-export SUPABASE_URL=...
-export SUPABASE_ANON_KEY=...
+export SUPABASE_URL=...          # https://….supabase.co
+export SUPABASE_ANON_KEY=...     # sb_publishable_… or legacy anon JWT
 node build.js
 python3 -m http.server 4173 --directory dist
 ```
 
-Open http://localhost:4173
-
 ## Deploy
 
-1. Create a free Supabase project. In the SQL editor, run `schema.sql`.
-2. Copy **Project URL** (green **Connect** button) and the **publishable** key (`sb_publishable_…`) or the **Legacy anon** JWT. Do not copy `sb_secret_` or `service_role`.
-3. Create a Netlify site from this repo. Build command and publish directory are in `netlify.toml`.
-4. In Netlify: Site configuration → Environment variables:
+Netlify build: `node build.js`. Publish: `dist`. Env: `SUPABASE_URL`, `SUPABASE_ANON_KEY` only.
 
-   - `SUPABASE_URL` — `https://….supabase.co` from **Connect**, not the publishable key
-   - `SUPABASE_ANON_KEY` — `sb_publishable_…` or the Legacy `anon` JWT
+Run `schema.sql` in the Supabase SQL editor first, then `./scripts/verify-rls.sh` (expect `[]` on read).
 
-5. Trigger a deploy. Confirm the live page source contains the real URL, not `__SUPABASE_URL__`.
-6. Prove reads are blocked:
-
-```bash
-SUPABASE_URL=... SUPABASE_ANON_KEY=... ./scripts/verify-rls.sh
-```
-
-You want `PASS` and a body of `[]`. Insert happens first so an empty table cannot fake that result.
-
-If confirm-click fails with `permission denied for table waitlist` and a hint to GRANT to `service_role`, run that grant in the SQL editor (it is already in `schema.sql`). `service_role` skips RLS but still needs table privileges.
-
-## Layout
-
-```
-schema.sql             table, unique email, CHECK, RLS, grants
-src/                   page source (placeholders, not secrets)
-build.js               copies src/ → dist/ and fills placeholders
-scripts/verify-rls.sh  stranger-with-the-anon-key read test
-WRITEUP.md             assumptions, scale, who can read emails, next steps
-docs/n8n-setup.md      click-by-click: Resend, import workflow, Supabase webhook
-n8n/teahappy-waitlist-emails.json   import this into n8n
-```
-
-## Locked choices
-
-| Decision | Choice |
-| --- | --- |
-| Path into Supabase | Browser → REST with the anon key |
-| Duplicates | Unique on `email`. Second insert is 409; the page still says success. |
-| Columns | `id`, `email`, `created_at`, `confirm_token`, `confirmed_at` |
-| Validation | `type="email"`, JS checks, database `CHECK` |
-| Spam | Honeypot field. Filled bots get a fake success and no insert. |
+Mail: import `n8n/teahappy-waitlist-emails.json`. Operator notes: [docs/n8n.md](docs/n8n.md).
